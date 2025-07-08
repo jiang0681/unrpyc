@@ -93,4 +93,5 @@ python unrpyc.py -c existing_file.rpyc
 
 ---
 
+**精简版 unrpyc** - 专为日常使用优化  
 原项目地址: https://github.com/CensoredUsername/unrpyc
