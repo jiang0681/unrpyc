@@ -1,24 +1,3 @@
-# Copyright (c) 2014-2024 CensoredUsername, Jackmcbarn
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software'), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-
 import sys
 import re
 from io import StringIO
@@ -33,34 +12,34 @@ class OptionBase:
 
 class DecompilerBase:
     def __init__(self, out_file=None, options=OptionBase()):
-        # the file object that the decompiler outputs to
+        # 反编译器输出到的文件对象
         self.out_file = out_file or sys.stdout
-        # Decompilation options
+        # 反编译选项
         self.options = options
-        # the string we use for indentation
+        # 我们用于缩进的字符串
         self.indentation = options.indentation
 
 
-        # properties used for keeping track of where we are
-        # the current line we're writing.
+        # 用于跟踪我们在哪里的属性
+        # 我们正在写入的当前行。
         self.linenumber = 0
-        # the indentation level we're at
+        # 我们所在的缩进级别
         self.indent_level = 0
-        # a boolean that can be set to make the next call to indent() not insert a newline and
-        # indent useful when a child node can continue on the same line as the parent node
-        # advance_to_line will also cancel this if it changes the lineno
+        # 一个布尔值，可以设置为使下一次调用indent()不插入换行符和
+        # 缩进 当子节点可以在与父节点相同的行上继续时很有用
+        # advance_to_line也会在改变行号时取消此设置
         self.skip_indent_until_write = False
 
-        # properties used for keeping track what level of block we're in
+        # 用于跟踪我们在哪个块级别的属性
         self.block_stack = []
         self.index_stack = []
 
-        # storage for any stuff that can be emitted whenever we have a blank line
+        # 存储任何可以在有空行时发出的内容
         self.blank_line_queue = []
 
     def dump(self, ast, indent_level=0, linenumber=1, skip_indent_until_write=False):
         """
-        Write the decompiled representation of `ast` into the opened file given in the constructor
+        将`ast`的反编译表示写入构造函数中给定的打开文件
         """
         self.indent_level = indent_level
         self.linenumber = linenumber
@@ -80,7 +59,7 @@ class DecompilerBase:
 
     def write(self, string):
         """
-        Shorthand method for writing `string` to the file
+        将`string`写入文件的简写方法
         """
         string = str(string)
         self.linenumber += string.count('\n')
@@ -89,7 +68,7 @@ class DecompilerBase:
 
     def write_lines(self, lines):
         """
-        Write each line in lines to the file without writing whitespace-only lines
+        将lines中的每一行写入文件，不写入仅包含空白的行
         """
         for line in lines:
             if line == '':

@@ -1,26 +1,6 @@
-# Copyright (c) 2015-2024 CensoredUsername
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-# This module holds some special classes and shorthand functions for support of renpy compatiblity.
-# They're separate so there will be less code duplication, simpler dependencies between files and
-# to avoid middle-of-file imports.
+# 此模块包含一些特殊类和简写函数，用于支持renpy兼容性。
+# 它们是分离的，这样就会有更少的代码重复，文件之间的依赖关系更简单，
+# 以及避免文件中间的导入。
 
 from . import magic
 magic.fake_package("renpy")
@@ -29,16 +9,14 @@ import renpy  # noqa
 import pickletools
 
 
-# these named classes need some special handling for us to be able to reconstruct ren'py ASTs from
-# pickles
+# 这些命名类需要一些特殊处理，以便我们能够从pickle重建ren'py AST
 SPECIAL_CLASSES = [set, frozenset]
 
 
-# ren'py _annoyingly_ enables fix_imports even in ren'py v8 and still defaults to pickle protocol 2.
-# so set/frozenset get mapped to the wrong location (__builtins__ instead of builtins)
-# we don't want to enable that option as we want control over what the pickler is allowed to
-# unpickle
-# so here we define some proxies
+# ren'py _令人烦恼地_即使在ren'py v8中仍然启用fix_imports，并且仍然默认使用pickle协议2。
+# 所以set/frozenset被映射到错误的位置（__builtins__而不是builtins）
+# 我们不想启用该选项，因为我们想控制pickler允许unpickle什么
+# 所以在这里我们定义一些代理
 class oldset(set):
     __module__ = "__builtin__"
 

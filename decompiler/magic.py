@@ -1,24 +1,4 @@
-# Copyright (c) 2015-2024 CensoredUsername
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-# This module provides tools for safely analyizing pickle files programmatically
+# 此模块提供用于安全地程序化分析pickle文件的工具
 
 import sys
 
@@ -50,57 +30,54 @@ __all__ = [
     "SafePickler"
 ]
 
-# Fake class implementation
+# 伪类实现
 
 class FakeClassType(type):
     """
-    The metaclass used to create fake classes. To support comparisons between
-    fake classes and :class:`FakeModule` instances custom behaviour is defined
-    here which follows this logic:
+    用于创建伪类的元类。为了支持伪类和:class:`FakeModule`实例之间的比较，
+    这里定义了自定义行为，遵循以下逻辑：
 
-    If the other object does not have ``other.__name__`` set, they are not equal.
+    如果其他对象没有设置``other.__name__``，它们不相等。
 
-    Else if it does not have ``other.__module__`` set, they are equal if
-    ``self.__module__ + "." + self.__name__ == other.__name__``.
+    否则，如果它没有设置``other.__module__``，当
+    ``self.__module__ + "." + self.__name__ == other.__name__``时它们相等。
 
-    Else, they are equal if
-    ``self.__module__ == other.__module__ and self.__name__ == other.__name__``
+    否则，当
+    ``self.__module__ == other.__module__ and self.__name__ == other.__name__``时它们相等
 
-    Using this behaviour, ``==``, ``!=``, ``hash()``, ``isinstance()`` and ``issubclass()``
-    are implemented allowing comparison between :class:`FakeClassType` instances
-    and :class:`FakeModule` instances to succeed if they are pretending to be in the same
-    place in the python module hierarchy.
+    使用这种行为，实现了``==``、``!=``、``hash()``、``isinstance()``和``issubclass()``，
+    允许:class:`FakeClassType`实例和:class:`FakeModule`实例之间的比较在它们假装在
+    python模块层次结构中的相同位置时成功。
 
-    To create a fake class using this metaclass, you can either use this metaclass directly or
-    inherit from the fake class base instances given below. When doing this, the module that
-    this fake class is pretending to be in should be specified using the *module* argument
-    when the metaclass is called directly or a :attr:``__module__`` class attribute in a class statement.
+    要使用此元类创建伪类，您可以直接使用此元类或从下面给出的伪类基实例继承。
+    执行此操作时，应该使用*module*参数指定此伪类假装所在的模块，当元类被直接调用时，
+    或在类语句中使用:attr:``__module__``类属性。
 
-    This is a subclass of :class:`type`.
+    这是:class:`type`的子类。
     """
 
-    # instance creation logic
+    # 实例创建逻辑
 
     def __new__(cls, name, bases, attributes, module=None):
-        # This would be a lie
+        # 这将是谎言
         attributes.pop("__qualname__", None)
 
-        # figure out what module we should say we're in
-        # note that if no module is explicitly passed, the current module will be chosen
-        # due to the class statement implicitly specifying __module__ as __name__
+        # 确定我们应该说我们在哪个模块中
+        # 注意，如果没有明确传递模块，将选择当前模块
+        # 因为类语句隐式指定__module__为__name__
         if module is not None:
             attributes["__module__"] = module
 
         if "__module__" not in attributes:
-            raise TypeError("No module has been specified for FakeClassType {0}".format(name))
+            raise TypeError("未为FakeClassType {0}指定模块".format(name))
 
-        # assemble instance
+        # 组装实例
         return type.__new__(cls, name, bases, attributes)
 
     def __init__(self, name, bases, attributes, module=None):
         type.__init__(self, name, bases, attributes)
 
-    # comparison logic
+    # 比较逻辑
 
     def __eq__(self, other):
         if not hasattr(other, "__name__"):

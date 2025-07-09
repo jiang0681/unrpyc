@@ -1,36 +1,14 @@
-# Copyright (c) 2021-2024 CensoredUsername
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# 此文件包含针对已知混淆技术的已记录策略以及
+# 测试这些策略的一些机制。
 
-
-
-# This file contains documented strategies used against known obfuscation techniques and
-# some machinery to test them against.
-
-# Architecture is pretty simple. There's at least two steps in unpacking the rpyc format.
-# RPYC2 is an archive format that can contain multiple streams (referred to as slots)
-# The first step is extracting the slot from it, which is done by one of the extractors.
-# These all give a blob that's either still zlib-compressed or just the raw slot
-# (some methods rely on the zlib compression to figure out the slot length)
-# Then, there's 0 or more steps of decrypting the data in that slot. This ends up often
-# being layers of base64, string-escape, hex-encoding, zlib-compression, etc.
-# We handle this by just trying these by checking if they fit.
+# 架构非常简单。解包rpyc格式至少有两个步骤。
+# RPYC2是一种存档格式，可以包含多个流（称为槽位）
+# 第一步是从中提取槽位，这由提取器之一完成。
+# 这些都给出一个blob，要么仍然是zlib压缩的，要么只是原始槽位
+# （某些方法依赖于zlib压缩来确定槽位长度）
+# 然后，有0个或多个解密该槽位数据的步骤。这通常最终
+# 是base64、字符串转义、十六进制编码、zlib压缩等的层层嵌套。
+# 我们通过检查它们是否适合来处理这个问题。
 
 import base64
 import struct
@@ -39,35 +17,35 @@ from collections import Counter
 
 from decompiler.renpycompat import pickle_safe_loads
 
-# Extractors are simple functions of (fobj, slotno) -> bytes
-# They raise ValueError if they fail
+# 提取器是简单的函数(fobj, slotno) -> bytes
+# 如果失败，它们会引发ValueError
 EXTRACTORS = []
 def extractor(f):
     EXTRACTORS.append(f)
     return f
 
-# Decryptors are simple functions of (bytes, Counter) ->bytes
-# They return None if they fail. If they return their input they're also considered to have failed.
+# 解密器是简单的函数(bytes, Counter) -> bytes
+# 如果失败，它们返回None。如果返回输入，也被认为失败。
 DECRYPTORS = []
 def decryptor(f):
     DECRYPTORS.append(f)
     return f
 
 
-# Add game-specific custom extraction / decryption logic here
+# 在此处添加游戏特定的自定义提取/解密逻辑
 
-# End of custom extraction/decryption logic
+# 自定义提取/解密逻辑结束
 
 
 @extractor
 def extract_slot_rpyc(f, slot):
     """
-    Slot extractor for a file that's in the actual rpyc format
+    用于实际rpyc格式文件的槽位提取器
     """
     f.seek(0)
     data = f.read()
     if data[:10] != b'RENPY RPC2':
-        raise ValueError("Incorrect Header")
+        raise ValueError("头部不正确")
 
     position = 10
     slots = {}
@@ -78,15 +56,15 @@ def extract_slot_rpyc(f, slot):
             break
 
         if start + length >= len(data):
-            raise ValueError("Broken slot entry")
+            raise ValueError("损坏的槽位条目")
 
         slots[slotid] = (start, length)
         position += 12
     else:
-        raise ValueError("Broken slot header structure")
+        raise ValueError("损坏的槽位头部结构")
 
     if slot not in slots:
-        raise ValueError("Unknown slot id")
+        raise ValueError("未知的槽位id")
 
     start, length = slots[slot]
     return data[start:start + length]
@@ -94,10 +72,10 @@ def extract_slot_rpyc(f, slot):
 @extractor
 def extract_slot_legacy(f, slot):
     """
-    Slot extractor for the legacy format
+    用于旧版格式的槽位提取器
     """
     if slot != 1:
-        raise ValueError("Legacy format only supports 1 slot")
+        raise ValueError("旧版格式仅支持1个槽位")
 
     f.seek(0)
     data = f.read()
@@ -105,14 +83,14 @@ def extract_slot_legacy(f, slot):
     try:
         data = zlib.decompress(data)
     except zlib.error:
-        raise ValueError("Legacy format did not contain a zlib blob")
+        raise ValueError("旧版格式不包含zlib blob")
 
     return data
 
 @extractor
 def extract_slot_headerscan(f, slot):
     """
-    Slot extractor for things that changed the magic and so moved the header around.
+    用于更改了魔法数字从而移动头部的情况的槽位提取器。
     """
     f.seek(0)
     data = f.read()
@@ -125,7 +103,7 @@ def extract_slot_headerscan(f, slot):
         position += 1
 
     else:
-        raise ValueError("Couldn't find a header")
+        raise ValueError("找不到头部")
 
     slots = {}
     while position + 12 <= len(data):
@@ -134,15 +112,15 @@ def extract_slot_headerscan(f, slot):
             break
 
         if start + length >= len(data):
-            raise ValueError("Broken slot entry")
+            raise ValueError("损坏的槽位条目")
 
         slots[slotid] = (start, length)
         position += 12
     else:
-        raise ValueError("Broken slot header structure")
+        raise ValueError("损坏的槽位头部结构")
 
     if slot not in slots:
-        raise ValueError("Unknown slot id")
+        raise ValueError("未知的槽位id")
 
     start, length = slots[slot]
     return data[start:start + length]
@@ -150,8 +128,8 @@ def extract_slot_headerscan(f, slot):
 @extractor
 def extract_slot_zlibscan(f, slot):
     """
-    Slot extractor for things that fucked with the header structure to the point where it's
-    easier to just not bother with it and instead we just look for valid zlib chunks directly.
+    用于那些搞乱头部结构到不值得处理的程度的情况的槽位提取器，
+    我们直接寻找有效的zlib块。
     """
     f.seek(0)
     data = f.read()
@@ -176,7 +154,7 @@ def extract_slot_zlibscan(f, slot):
         chunks.append(chunk)
 
     if slot > len(chunks):
-        raise ValueError("Zlibscan did not find enough chunks")
+        raise ValueError("Zlibscan未找到足够的块")
 
     return chunks[slot - 1]
 
@@ -222,11 +200,11 @@ def decrypt_string_escape(data, count):
 
 def assert_is_normal_rpyc(f):
     """
-    Analyze the structure of a single rpyc file object for correctness.
-    Does not actually say anything about the _contents_ of that section, just that we were
-    able to slice it out of there.
+    分析单个rpyc文件对象的结构正确性。
+    实际上并不对该部分的_内容_做任何说明，只是说我们能够
+    从那里切片出来。
 
-    If succesful, returns the uncompressed contents of the first storage slot.
+    如果成功，返回第一个存储槽的未压缩内容。
     """
 
     f.seek(0)
@@ -234,9 +212,9 @@ def assert_is_normal_rpyc(f):
     f.seek(0)
 
     if header[:10] != b'RENPY RPC2':
-        # either legacy, or someone messed with the header
+        # 要么是旧版，要么有人搞乱了头部
 
-        # assuming legacy, see if this thing is a valid zlib blob
+        # 假设是旧版，看看这个东西是否是有效的zlib blob
         raw_data = f.read()
         f.seek(0)
 
@@ -244,40 +222,40 @@ def assert_is_normal_rpyc(f):
             uncompressed = zlib.decompress(raw_data)
         except zlib.error:
             raise ValueError(
-                "Did not find RENPY RPC2 header, but interpretation as legacy file failed")
+                "未找到RENPY RPC2头部，但作为旧版文件的解释失败")
 
         return uncompressed
 
     else:
         if len(header) < 46:
-            # 10 bytes header + 4 * 9 bytes content table
-            return ValueError("File too short")
+            # 10字节头部 + 4 * 9字节内容表
+            return ValueError("文件太短")
 
         a, b, c, d, e, f, g, h, i = struct.unpack("<IIIIIIIII", header[10:46])
 
-        # does the header format match default ren'py generated files?
+        # 头部格式是否匹配默认的ren'py生成文件？
         if not (a == 1 and b == 46 and d == 2 and (g, h, i) == (0, 0, 0) and b + c == e):
-            return ValueError("Header data is abnormal, did the format gain extra fields?")
+            return ValueError("头部数据异常，格式是否增加了额外字段？")
 
         f.seek(b)
         raw_data = f.read(c)
         f.seek(0)
         if len(raw_data) != c:
-            return ValueError("Header data is incompatible with file length")
+            return ValueError("头部数据与文件长度不兼容")
 
         try:
             uncompressed = zlib.decompress(raw_data)
         except zlib.error:
-            return ValueError("Slot 1 did not contain a zlib blob")
+            return ValueError("槽位1不包含zlib blob")
 
         if not uncompressed.endswith("."):
-            return ValueError("Slot 1 did not contain a simple pickle")
+            return ValueError("槽位1不包含简单的pickle")
 
         return uncompressed
 
 
 def read_ast(f, context):
-    diagnosis = ["Attempting to deobfuscate file:"]
+    diagnosis = ["正在尝试去混淆文件:"]
 
     raw_datas = set()
 
@@ -285,19 +263,19 @@ def read_ast(f, context):
         try:
             data = extractor(f, 1)
         except ValueError as e:
-            # inside f-string braces "\" are not allowed before py3.12, so we use chr() till
-            # this our minimum py is
-            diagnosis.append(f'strategy {extractor.__name__} failed: {chr(10).join(e.args)}')
+            # 在f-string大括号内，在py3.12之前不允许使用"\"，所以我们使用chr()直到
+            # 这是我们的最小py版本
+            diagnosis.append(f'策略 {extractor.__name__} 失败: {chr(10).join(e.args)}')
         else:
-            diagnosis.append(f'strategy {extractor.__name__} success')
+            diagnosis.append(f'策略 {extractor.__name__} 成功')
             raw_datas.add(data)
 
     if not raw_datas:
-        diagnosis.append("All strategies failed. Unable to extract data")
+        diagnosis.append("所有策略都失败了。无法提取数据")
         raise ValueError("\n".join(diagnosis))
 
     if len(raw_datas) != 1:
-        diagnosis.append("Strategies produced different results. Trying all options")
+        diagnosis.append("策略产生了不同的结果。尝试所有选项")
 
     data = None
     for raw_data in raw_datas:
@@ -310,7 +288,7 @@ def read_ast(f, context):
             context.log("\n".join(diagnosis))
             return stmts
 
-    diagnosis.append("All strategies failed. Unable to deobfuscate data")
+    diagnosis.append("所有策略都失败了。无法去混淆数据")
     raise ValueError("\n".join(diagnosis))
 
 
@@ -319,7 +297,7 @@ def try_decrypt_section(raw_data):
 
     layers = 0
     while layers < 10:
-        # can we load it yet?
+        # 我们能加载它了吗？
         try:
             data, stmts = pickle_safe_loads(raw_data)
         except Exception:
@@ -336,10 +314,10 @@ def try_decrypt_section(raw_data):
                 continue
             else:
                 raw_data = newdata
-                diagnosis.append(f'performed a round of {decryptor.__name__}')
+                diagnosis.append(f'执行了一轮 {decryptor.__name__}')
                 break
         else:
             break
 
-    diagnosis.append("Did not know how to decrypt data.")
+    diagnosis.append("不知道如何解密数据。")
     raise ValueError("\n".join(diagnosis))

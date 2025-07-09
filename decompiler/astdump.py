@@ -1,37 +1,17 @@
-# Copyright (c) 2013-2024 CensoredUsername, Jackmcbarn
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 import sys
 import inspect
 import renpy
 
 def pprint(out_file, ast, comparable=False, no_pyexpr=False):
-    # The main function of this module, a wrapper which sets
-    # the config and creates the AstDumper instance
+    # 此模块的主要函数，一个包装器，用于设置
+    # 配置并创建AstDumper实例
     AstDumper(out_file, comparable=comparable, no_pyexpr=no_pyexpr).dump(ast)
 
 class AstDumper(object):
     """
-    An object which handles the walking of a tree of python objects
-    it will create a human-readable representation of all interesting
-    attributes and write this to a given stream
+    一个处理python对象树遍历的对象
+    它将创建所有有趣属性的人类可读表示
+    并将其写入给定的流
     """
     MAP_OPEN = {list: '[', tuple: '(', set: 'set({', frozenset: 'frozenset({'}
     MAP_CLOSE = {list: ']', tuple: ')', set: '})', frozenset: '})'}
@@ -46,14 +26,13 @@ class AstDumper(object):
     def dump(self, ast):
         self.linenumber = 1
         self.indent = 0
-        # We'll keep a stack of objects which we've traversed here so we don't recurse
-        # endlessly on circular references
+        # 我们将在这里保留一个已遍历对象的栈，这样我们就不会在循环引用上无限递归
         self.passed = []
         self.passed_where = []
         self.print_ast(ast)
 
     def print_ast(self, ast):
-        # Decides which function should be used to print the given ast object.
+        # 决定应该使用哪个函数来打印给定的ast对象。
         try:
             i = self.passed.index(ast)
         except ValueError:

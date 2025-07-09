@@ -1,22 +1,3 @@
-# Copyright (c) 2012-2024 Yuri K. Schlesner, CensoredUsername, Jackmcbarn
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
 from .util import DecompilerBase, First, WordConcatenator, reconstruct_paraminfo, \
                   reconstruct_arginfo, string_escape, split_logical_lines, Dispatcher, \
@@ -34,16 +15,16 @@ from . import astdump
 __all__ = ["astdump", "magic", "sl2decompiler", "testcasedecompiler", "translate", "util",
            "Options", "pprint", "Decompiler", "renpycompat"]
 
-# Main API
+# 主要API
 
-# Object that carries configurable decompilation options
+# 承载可配置反编译选项的对象
 class Options(OptionBase):
     def __init__(self, indentation="    ", log=None,
                  translator=None, init_offset=False,
                  sl_custom_names=None):
         super(Options, self).__init__(indentation=indentation, log=log)
 
-        # decompilation options
+        # 反编译选项
         self.translator = translator
         self.init_offset = init_offset
         self.sl_custom_names = sl_custom_names
@@ -51,15 +32,15 @@ class Options(OptionBase):
 def pprint(out_file, ast, options=Options()):
     Decompiler(out_file, options).dump(ast)
 
-# Implementation
+# 实现
 
 class Decompiler(DecompilerBase):
     """
-    An object which hanldes the decompilation of renpy asts to a given stream
+    处理将renpy AST反编译到给定流的对象
     """
 
-    # This dictionary is a mapping of Class: unbount_method, which is used to determine
-    # what method to call for which ast class
+    # 这个字典是Class: unbound_method的映射，用于确定
+    # 为哪个ast类调用什么方法
     dispatch = Dispatcher()
 
     def __init__(self, out_file, options):
@@ -105,17 +86,17 @@ class Decompiler(DecompilerBase):
         if self.options.init_offset and isinstance(ast, (tuple, list)):
             self.set_best_init_offset(ast)
 
-        # skip_indent_until_write avoids an initial blank line
+        # skip_indent_until_write避免初始空行
         super(Decompiler, self).dump(ast, skip_indent_until_write=True)
-        # if there's anything we wanted to write out but didn't yet, do it now
+        # 如果有我们想要写出但还没有写的内容，现在就写
         for m in self.blank_line_queue:
             m(None)
-        self.write("\n# Decompiled by unrpyc: https://github.com/CensoredUsername/unrpyc\n")
-        assert not self.missing_init, "A required init, init label, or translate block was missing"
+        self.write("\n# 由unrpyc反编译: https://github.com/CensoredUsername/unrpyc\n")
+        assert not self.missing_init, "缺少必需的init、init标签或translate块"
 
     def print_node(self, ast):
-        # We special-case line advancement for some types in their print
-        # methods, so don't advance lines for them here.
+        # 我们在它们的打印方法中为某些类型特殊处理行前进，
+        # 所以这里不要为它们前进行
         if hasattr(ast, 'linenumber') and not isinstance(
                 ast, (renpy.ast.TranslateString, renpy.ast.With, renpy.ast.Label,
                       renpy.ast.Pass, renpy.ast.Return)
@@ -124,7 +105,7 @@ class Decompiler(DecompilerBase):
 
         self.dispatch.get(type(ast), type(self).print_unknown)(self, ast)
 
-    # ATL subdecompiler hook
+    # ATL子反编译器钩子
 
     def print_atl(self, ast):
         self.linenumber = atldecompiler.pprint(
@@ -133,7 +114,7 @@ class Decompiler(DecompilerBase):
         )
         self.skip_indent_until_write = False
 
-    # Displayable related functions
+    # 可显示相关函数
 
     def print_imspec(self, imspec):
         if imspec[1] is not None:
@@ -177,8 +158,8 @@ class Decompiler(DecompilerBase):
         self.require_init()
         self.indent()
 
-        # If we have an implicit init block with a non-default priority, we need to store the
-        # priority here.
+        # 如果我们有一个具有非默认优先级的隐式init块，我们需要在这里
+        # 存储优先级。
         priority = ""
         if isinstance(self.parent, renpy.ast.Init):
             init = self.parent
@@ -190,16 +171,16 @@ class Decompiler(DecompilerBase):
         if ast.parameters is not None:
             self.write(reconstruct_paraminfo(ast.parameters))
 
-        # atl attribute: since 6.10
+        # atl属性：自6.10以来
         if ast.atl is not None:
             self.write(":")
             self.print_atl(ast.atl)
 
-    # Directing related functions
+    # 导演相关函数
 
     @dispatch(renpy.ast.Show)
     def print_show(self, ast):
-        # Apply defaults for Ren'Py 8.4.0 compatibility
+        # 应用Ren'Py 8.4.0兼容性默认值
         if not hasattr(ast, 'atl'):
             ast.atl = None
         if not hasattr(ast, 'imspec'):
@@ -246,7 +227,7 @@ class Decompiler(DecompilerBase):
 
     @dispatch(renpy.ast.Scene)
     def print_scene(self, ast):
-        # Apply defaults for Ren'Py 8.4.0 compatibility
+        # 应用Ren'Py 8.4.0兼容性默认值
         if not hasattr(ast, 'atl'):
             ast.atl = None
         if not hasattr(ast, 'imspec'):
@@ -297,20 +278,20 @@ class Decompiler(DecompilerBase):
         if not hasattr(ast, 'expr'):
             ast.expr = None
             
-        # the 'paired' attribute indicates that this with
-        # and with node afterwards are part of a postfix
-        # with statement. detect this and process it properly
+        # 'paired'属性表示这个with
+        # 和之后的with节点是后缀
+        # with语句的一部分。检测这个并正确处理它
         if ast.paired is not None:
-            # Sanity check. check if there's a matching with statement two nodes further
+            # 健全性检查。检查是否有匹配的with语句在再往后两个节点
             if not (isinstance(self.block[self.index + 2], renpy.ast.With)
                     and self.block[self.index + 2].expr == ast.paired):
                 raise Exception(f'Unmatched paired with {self.paired_with!r} != {ast.expr!r}')
 
             self.paired_with = ast.paired
 
-        # paired_with attribute since 6.7.1
+        # paired_with属性自6.7.1以来
         elif self.paired_with:
-            # Check if it was consumed by a show/scene statement
+            # 检查它是否被show/scene语句消耗了
             if self.paired_with is not True:
                 self.write(f' with {ast.expr}')
             self.paired_with = False
@@ -340,7 +321,7 @@ class Decompiler(DecompilerBase):
             self.write(":")
             self.print_atl(ast.atl)
 
-    # Flow control
+    # 流程控制
 
     @dispatch(renpy.ast.Label)
     def print_label(self, ast):
@@ -352,15 +333,15 @@ class Decompiler(DecompilerBase):
         if not hasattr(ast, 'block'):
             ast.block = []
             
-        # If a Call block preceded us, it printed us as "from"
+        # 如果一个Call块在我们之前，它把我们打印为"from"
         if (self.index and isinstance(self.block[self.index - 1], renpy.ast.Call)):
             return
 
-        # See if we're the label for a menu, rather than a standalone label.
+        # 看看我们是否是菜单的标签，而不是独立的标签。
         if not ast.block and ast.parameters is None:
             remaining_blocks = len(self.block) - self.index
             if remaining_blocks > 1:
-                # Label followed by a menu
+                # 标签后跟菜单
                 next_ast = self.block[self.index + 1]
                 if (isinstance(next_ast, renpy.ast.Menu)
                         and next_ast.linenumber == ast.linenumber):
@@ -368,7 +349,7 @@ class Decompiler(DecompilerBase):
                     return
 
             if remaining_blocks > 2:
-                # Label, followed by a say, followed by a menu
+                # 标签，后跟一个say，然后是菜单
                 next_next_ast = self.block[self.index + 2]
                 if (isinstance(next_ast, renpy.ast.Say)
                         and isinstance(next_next_ast, renpy.ast.Menu)
@@ -381,9 +362,9 @@ class Decompiler(DecompilerBase):
         self.advance_to_line(ast.linenumber)
         self.indent()
 
-        # It's possible that we're an "init label", not a regular label. There's no way to know
-        # if we are until we parse our children, so temporarily redirect all of our output until
-        # that's done, so that we can squeeze in an "init " if we are.
+        # 可能我们是"init label"，而不是常规标签。在我们解析子节点之前
+        # 无法知道我们是否是，所以临时重定向我们的所有输出直到
+        # 完成，这样如果我们是的话，我们可以挤入一个"init "
         out_file = self.out_file
         self.out_file = StringIO()
         missing_init = self.missing_init
@@ -424,8 +405,8 @@ class Decompiler(DecompilerBase):
                 words.append("pass")
             words.append(reconstruct_arginfo(ast.arguments))
 
-        # We don't have to check if there's enough elements here,
-        # since a Label or a Pass is always emitted after a Call.
+        # 我们不需要在这里检查是否有足够的元素，
+        # 因为Label或Pass总是在Call之后发出。
         next_block = self.block[self.index + 1]
         if isinstance(next_block, renpy.ast.Label):
             words.append(f'from {next_block.name}')
@@ -443,8 +424,8 @@ class Decompiler(DecompilerBase):
                 and self.index + 1 == len(self.block)
                 and self.index
                 and ast.linenumber == self.block[self.index - 1].linenumber):
-            # As of Ren'Py commit 356c6e34, a return statement is added to
-            # the end of each rpyc file. Don't include this in the source.
+            # 从Ren'Py提交356c6e34开始，每个rpyc文件末尾都会添加一个return语句。
+            # 不要在源代码中包含这个。
             return
 
         self.advance_to_line(ast.linenumber)
@@ -461,12 +442,12 @@ class Decompiler(DecompilerBase):
         # Apply defaults for Ren'Py 8.4.0 compatibility
         entries = getattr(ast, 'entries', [])
         if not entries:
-            # If no entries, skip this if statement
+        # 如果没有entries，跳过这个if语句
             return
 
         for i, (condition, block) in enumerate(entries):
-            # The unicode string "True" is used as the condition for else:.
-            # But if it's an actual expression, it's a renpy.ast.PyExpr
+            # Unicode字符串"True"用作else:的条件。
+            # 但如果它是实际的表达式，它就是renpy.ast.PyExpr
             if (i + 1) == len(entries) and not isinstance(condition, renpy.ast.PyExpr):
                 self.indent()
                 self.write("else:")
@@ -476,7 +457,7 @@ class Decompiler(DecompilerBase):
                 self.indent()
                 self.write(f'{statement()} {condition}:')
 
-            # Only print block if it exists and is not empty
+            # 只有在块存在且不为空时才打印
             if block:
                 self.print_nodes(block, 1)
 
@@ -526,15 +507,14 @@ class Decompiler(DecompilerBase):
             votes[offset] = votes.get(offset, 0) + 1
         if votes:
             winner = max(votes, key=votes.get)
-            # It's only worth setting an init offset if it would save
-            # more than one priority specification versus not setting one.
+            # 只有在可以节省超过一个优先级规范时才值得设置init偏移
             if votes.get(0, 0) + 1 < votes[winner]:
                 self.set_init_offset(winner)
 
     def set_init_offset(self, offset):
         def do_set_init_offset(linenumber):
-            # if we got to the end of the file and haven't emitted this yet,
-            # don't bother, since it only applies to stuff below it.
+            # 如果我们到达文件末尾并且还没有发出这个，
+            # 不要费心了，因为它只适用于下面的内容。
             if linenumber is None or linenumber - self.linenumber <= 1 or self.indent_level:
                 return True
             if offset != self.init_offset:
@@ -552,7 +532,7 @@ class Decompiler(DecompilerBase):
         try:
             # A bunch of statements can have implicit init blocks
             # Define has a default priority of 0, screen of -500 and image of 990
-            # Keep this block in sync with set_best_init_offset
+            # 保持此块与set_best_init_offset同步
             # TODO merge this and require_init into another decorator or something
             if (len(ast.block) == 1
                     and (isinstance(ast.block[0], (renpy.ast.Define, renpy.ast.Default,
@@ -569,10 +549,10 @@ class Decompiler(DecompilerBase):
                          or (ast.priority == 500 + self.init_offset
                              and isinstance(ast.block[0], renpy.ast.Image)))
                     and not (self.should_come_before(ast, ast.block[0]))):
-                # If they fulfill this criteria we just print the contained statement
+                # 如果它们满足这个条件，我们只是打印包含的语句
                 self.print_nodes(ast.block)
 
-            # translatestring statements are split apart and put in an init block.
+            # translatestring语句被分开并放入init块中。
             elif (len(ast.block) > 0
                   and ast.priority == self.init_offset
                   and all(isinstance(i, renpy.ast.TranslateString) for i in ast.block)
@@ -667,8 +647,8 @@ class Decompiler(DecompilerBase):
                     self.advance_to_line(condition.linenumber)
                 elif self.say_inside_menu is not None:
                     # The hard case: we don't know the line number that the menu item is on
-                    # So try to put it in, but be prepared to back it out if that puts us
-                    # behind on the line number
+                    # 所以尝试把它放入，但如果这让我们在
+                    # 行号上落后，准备撤销它
                     state = self.save_state()
                     self.most_lines_behind = self.last_lines_behind
                     self.print_say_inside_menu()
@@ -676,15 +656,15 @@ class Decompiler(DecompilerBase):
                 self.print_menu_item(label, condition, block, arguments)
 
                 if state is not None:
-                    # state[7] is the saved value of self.last_lines_behind
+                    # state[7]是self.last_lines_behind的保存值
                     if self.most_lines_behind > state[7]:
-                        # We tried to print the say statement that's inside the menu, but it
-                        # didn't fit here
-                        # Undo it and print this item again without it. We'll fit it in later
+                        # 我们试图打印菜单内的say语句，但它
+                        # 不适合这里
+                        # 撤销它并在没有它的情况下再次打印这个项目。我们稍后会把它放入
                         self.rollback_state(state)
                         self.print_menu_item(label, condition, block, arguments)
                     else:
-                        # state[6] is the saved value of self.most_lines_behind
+                        # state[6]是self.most_lines_behind的保存值
                         self.most_lines_behind = max(state[6], self.most_lines_behind)
                         self.commit_state(state)
 
@@ -693,7 +673,7 @@ class Decompiler(DecompilerBase):
                 # have to go after them all
                 self.print_say_inside_menu()
 
-    # Programming related functions
+    # 编程相关函数
 
     @dispatch(renpy.ast.Python)
     def print_python(self, ast, early=False):
@@ -710,7 +690,7 @@ class Decompiler(DecompilerBase):
             # store attribute added in 6.14
             if getattr(ast, "store", "store") != "store":
                 self.write(" in ")
-                # Strip prepended "store."
+        # 去除前置的"store."
                 self.write(ast.store[6:])
             self.write(":")
 
@@ -740,14 +720,14 @@ class Decompiler(DecompilerBase):
                 priority = f' {init.priority - self.init_offset}'
 
         index = ""
-        # index attribute added in 7.4
+        # index属性在7.4中添加
         if getattr(ast, "index", None) is not None:
             index = f'[{ast.index.source}]'
 
-        # operator attribute added in 7.4
+        # operator属性在7.4中添加
         operator = getattr(ast, "operator", "=")
 
-        # store attribute added in 6.18.2
+        # store属性在6.18.2中添加
         if getattr(ast, "store", "store") == "store":
             self.write(f'define{priority} {ast.varname}{index} {operator} {ast.code.source}')
         else:
@@ -780,10 +760,10 @@ class Decompiler(DecompilerBase):
         else:
             self.write(f'default{priority} {store[6:]}.{ast.varname} = {ast.code.source}')
 
-    # Specials
+    # 特殊功能
 
-    # Returns whether a Say statement immediately preceding a Menu statement
-    # actually belongs inside of the Menu statement.
+    # 返回紧接在菜单语句之前的Say语句
+    # 是否实际属于菜单语句内部。
     def say_belongs_to_menu(self, say, menu):
         # Apply defaults for Ren'Py 8.4.0 compatibility
         interact = getattr(say, 'interact', True)
@@ -817,15 +797,15 @@ class Decompiler(DecompilerBase):
         if not hasattr(ast, 'rollback'):
             ast.rollback = None
             
-        # if this say statement precedes a menu statement, postpone emitting it until we're
-        # handling the menu
+        # 如果这个say语句位于菜单语句之前，推迟发出它直到我们
+        # 处理菜单
         if (not inmenu
                 and self.index + 1 < len(self.block)
                 and self.say_belongs_to_menu(ast, self.block[self.index + 1])):
             self.say_inside_menu = ast
             return
 
-        # else just write it.
+        # 否则就写出来。
         self.indent()
         self.write(say_get_code(ast, inmenu))
 
@@ -834,7 +814,7 @@ class Decompiler(DecompilerBase):
         self.indent()
         self.write(ast.line)
 
-        # block attribute since 6.13.0
+        # block属性自6.13.0以来
         if getattr(ast, "block", None):
             with self.increase_indent():
                 self.print_lex(ast.block)
@@ -859,7 +839,7 @@ class Decompiler(DecompilerBase):
         take = getattr(ast, 'take', None)
         delattr = getattr(ast, 'delattr', [])
 
-        # These don't store a line number, so just put them on the first line
+        # 这些不存储行号，所以只是把它们放在第一行
         if parent is not None:
             keywords[ast.linenumber].append(f'is {parent}')
         if clear:
@@ -869,7 +849,7 @@ class Decompiler(DecompilerBase):
         for delname in delattr:
             keywords[ast.linenumber].append(f'del {delname}')
 
-        # These do store a line number
+        # 这些确实存储行号
         variant = getattr(ast, 'variant', None)
         properties = getattr(ast, 'properties', {})
         
@@ -896,7 +876,7 @@ class Decompiler(DecompilerBase):
                     self.indent()
                     self.write(i[1])
 
-    # Translation functions
+    # 翻译函数
 
     @dispatch(renpy.ast.Translate)
     def print_translate(self, ast):
@@ -907,26 +887,26 @@ class Decompiler(DecompilerBase):
 
     @dispatch(renpy.ast.EndTranslate)
     def print_endtranslate(self, ast):
-        # an implicitly added node which does nothing...
+        # 一个隐式添加的节点，什么都不做...
         pass
 
     @dispatch(renpy.ast.TranslateString)
     def print_translatestring(self, ast):
         self.require_init()
-        # Was the last node a translatestrings node?
+        # 最后一个节点是translatestrings节点吗？
         if not (self.index
                 and isinstance(self.block[self.index - 1], renpy.ast.TranslateString)
                 and self.block[self.index - 1].language == ast.language):
             self.indent()
             self.write(f'translate {ast.language or "None"} strings:')
 
-        # TranslateString's linenumber refers to the line with "old", not to the
-        # line with "translate ... strings: (above)"
+        # TranslateString的linenumber指向有"old"的行，而不是
+        # 上面的"translate ... strings:"行
         with self.increase_indent():
             self.advance_to_line(ast.linenumber)
             self.indent()
             self.write(f'old "{string_escape(ast.old)}"')
-            # newlock attribute since 6.99
+            # newloc属性自6.99以来
             if hasattr(ast, "newloc"):
                 self.advance_to_line(ast.newloc[1])
             self.indent()
@@ -943,15 +923,15 @@ class Decompiler(DecompilerBase):
         in_init = self.in_init
         if (len(ast.block) == 1
                 and isinstance(ast.block[0], (renpy.ast.Python, renpy.ast.Style))):
-            # Ren'Py counts the TranslateBlock from "translate python" and "translate
-            # style" as an Init.
+            # Ren'Py将"translate python"和"translate style"的TranslateBlock
+            # 计算为Init。
             self.in_init = True
         try:
             self.print_nodes(ast.block)
         finally:
             self.in_init = in_init
 
-    # Screens
+    # 屏幕
 
     @dispatch(renpy.ast.Screen)
     def print_screen(self, ast):
@@ -972,7 +952,7 @@ class Decompiler(DecompilerBase):
         else:
             self.print_unknown(screen)
 
-    # Testcases
+    # 测试用例
 
     @dispatch(renpy.ast.Testcase)
     def print_testcase(self, ast):
@@ -985,7 +965,7 @@ class Decompiler(DecompilerBase):
         )
         self.skip_indent_until_write = False
 
-    # Rpy python directives
+    # Rpy python指令
 
     @dispatch(renpy.ast.RPY)
     def print_rpy_python(self, ast):
